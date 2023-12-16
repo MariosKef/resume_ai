@@ -1,0 +1,11 @@
+#environment variables
+.env
+
+#venv
+venv/
+
+#macOS specific
+.DS_Store
+
+#notebooks
+*.ipynb
