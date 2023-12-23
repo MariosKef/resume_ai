@@ -25,9 +25,9 @@
             </div>
         </div>
     </nav>
-    <form method="POST" action="/">
+    <div class="container">
         <div class="row g-5 p-5">
-            <div class="col ms-5">
+            <div class="col-lg-6">
                 <div class="border border-dark-subtle shadow p-1 bg-body-subtle rounded">
                     <div class="form-floating">
                         <textarea class="form-control" id="cover-letter" name="cover-letter"
@@ -36,7 +36,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col me-5">
+            <div class="col-lg-6">
                 <div class="border border-dark-subtle shadow p-1 bg-body-subtle rounded">
                     <div class="form-floating">
                         <textarea class="form-control" id="job-description" name="job-description"
@@ -47,11 +47,17 @@
             </div>
         </div>
         <div class="row justify-content-center">
-            <div class="col text-center mt-3">
-                <button class="btn btn-primary" id="createSuggestionsButton">Create Suggestions</button>
+            <div id="spinnerContainer" class="spinner-border text-primary" role="status" style="display: none;">
+                <span class="visually-hidden">Loading...</span>
             </div>
         </div>
-    </form>
+        <div class="row justify-content-center">
+            <div class="col text-center mt-3">
+                <button class="btn btn-primary" id="createSuggestionsButton">Create Suggestions</button>
+                <button class="btn btn-secondary" id="resetButton">Reset</button>
+            </div>
+        </div>
+    </div>
     <!-- Results container that starts as hidden -->
     <div class="container d-flex justify-content-center align-items-center mt-3">
         <div class="row" id="resultsContainer" style="display: none;">
@@ -70,17 +76,20 @@
         </div>
     </div>
 
-    <!-- Reset button -->
-    <div class="container mt-3 text-center">
-        <button class="btn btn-secondary" id="resetButton" style="display: none;">Reset</button>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous"></script>
     <script>
         request_id = null;
         interval_id = null;
+        // Elements
+        const coverLetterElement = document.getElementById("cover-letter")
+        const jobDescriptionElement = document.getElementById("job-description")
+        const resultsContainerElement = document.getElementById('resultsContainer')
+        const spinnerContainerElement = document.getElementById('spinnerContainer')
+        // Buttons
+        const createSuggestionsButton = document.getElementById("createSuggestionsButton")
+        const resetButton = document.getElementById('resetButton')
 
         async function get_request() {
             try {
@@ -98,24 +107,18 @@
                         const suitabilityElement = document.getElementById('suitability');
                         const suggestionsElement = document.getElementById('suggestions');
 
-                        // Parse the JSON-formatted completion data
-                        const completionData = JSON.parse(data.completion);
-
                         // Update the content of the resultsContainer
-                        suitabilityElement.textContent = completionData.Suitability;
-                        suggestionsElement.textContent = completionData.Improvements;
+                        suitabilityElement.textContent = data.completion.Suitability;
+                        suggestionsElement.textContent = data.completion.Improvements;
 
                         // Show the resultsContainer
-                        const resultsContainer = document.getElementById('resultsContainer');
-                        resultsContainer.style.display = 'block';
-
-                        // Show the reset button
-                        document.getElementById('resetButton').style.display = 'block';
+                        showElement(resultsContainerElement)
 
                         // Clear the interval as the request is finished
                         clearInterval(interval_id);
                         interval_id = null; // Reset the interval_id
-
+                        enableElement(createSuggestionsButton)
+                        hideElement(spinnerContainerElement)
                     }
                 } else {
                     // Handle the case where the GET request was not successful
@@ -133,24 +136,21 @@
         // Function to reset the UI and hide results container
         function resetUI() {
             // Reset text areas
-            document.getElementById('cover-letter').value = '';
-            document.getElementById('job-description').value = '';
+            coverLetterElement.value = '';
+            jobDescriptionElement.value = '';
 
             // Hide results container
-            document.getElementById('resultsContainer').style.display = 'none';
-
-            // Hide reset button
-            document.getElementById('resetButton').style.display = 'none';
+            hideElement(resultsContainerElement)
         }
 
         // Function to handle reset button click
-        document.getElementById('resetButton').addEventListener('click', resetUI);
+        resetButton.addEventListener('click', resetUI);
 
         async function post_request(event) {
             event.preventDefault();
 
-            const coverLetter = document.getElementById('cover-letter').value;
-            const jobDescription = document.getElementById('job-description').value;
+            const coverLetter = coverLetterElement.value;
+            const jobDescription = jobDescriptionElement.value;
 
             console.log('Cover Letter:', coverLetter);
             console.log('Job Description:', jobDescription);
@@ -167,8 +167,8 @@
             }
 
             const form_data = {
-                'cover-letter': document.getElementById('cover-letter').value,
-                'job-description': document.getElementById('job-description').value
+                'cover-letter': coverLetterElement.value,
+                'job-description': jobDescriptionElement.value
             }
 
             console.log('form_data:', form_data)
@@ -184,11 +184,29 @@
                 console.log('data:', data)
                 request_id = data.request_id;
                 interval_id = setInterval(get_request, 500);  //500ms
+                disableElement(createSuggestionsButton)
+                showElement(spinnerContainerElement)
             }
             catch (error) { console.error(error) }
         }
 
-        document.getElementById("createSuggestionsButton").addEventListener("click", post_request)
+        function showElement(element) {
+            element.style.display = "block"
+        }
+
+        function hideElement(element) {
+            element.style.display = "none"
+        }
+
+        function disableElement(element) {
+            element.setAttribute("disabled", null)
+        }
+
+        function enableElement(element) {
+            element.removeAttribute("disabled")
+        }
+
+        createSuggestionsButton.addEventListener("click", post_request)
     </script>
 </body>
 

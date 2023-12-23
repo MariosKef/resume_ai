@@ -1,14 +1,15 @@
+import json
+import threading
 import uuid
-from openai import AsyncOpenAI
+from openai import OpenAI
 from typing import List
 from dotenv import load_dotenv
 
-
 load_dotenv()
-client = AsyncOpenAI()
+client = OpenAI()
 
 
-class SuggestionRequests:
+class SuggestionRequest:
     """
     Creates and submits the request to the openAI API and attaches a status and ID
     attribute to each request.
@@ -25,7 +26,8 @@ class SuggestionRequests:
         self.cover_letter = cover_letter
         self.request_status = "Created"
         self.request_id = str(uuid.uuid4())
-        self.completion = None
+        self.completion = {}
+        self.thread = threading.Thread(target=self.generate)
 
     def concat_messages(self) -> List[dict]:
         """
@@ -65,25 +67,24 @@ class SuggestionRequests:
 
     @staticmethod
     def extract_message(result):
-        """ """
-        return result.choices[0].message.content
+        return json.loads(result.choices[0].message.content)
 
-    async def generate_improvements(self):
+    def generate(self):
         """
         Sends the request to the chat completion openAI API endpoint.
         Note: Only accepts the gpt-3.5-turbo-1106 model
-
-        return:
         """
-
         messages = self.concat_messages()
-        completion = await client.chat.completions.create(
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=messages,
             response_format={"type": "json_object"},
         )
         self.request_status = "Finished"
-        # TODO: put the update in another function
         self.completion = self.extract_message(completion)
-        print(f"completion: {self.completion}")
-        # self.completion = f'{{\n  "Suitability": "{self.cover_letter}",\n  "Improvements": "{self.job_description}"}}'
+
+    def to_json(self):
+        return {"request_status": self.request_status, "completion": self.completion}
+
+    def start(self):
+        self.thread.start()
